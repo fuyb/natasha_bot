@@ -170,7 +170,7 @@ class MUCBot(sleekxmpp.ClientXMPP):
                     if re.search(r'^[a-zA-Z\-]+$', msg_body):
                         result = "%s/html" % run_trans(msg_body).split('\n')[0]
                     # 查快递
-                    elif re.search(r'^%s[\w\d\-]+$' % u'快[递遞]', msg_body):
+                    elif re.search(r'^%s[\w\-]+$' % u'快[递遞]', msg_body):
                         reg_str = r'%s(?P<number>[\w+\-]+)$' % u'快[递遞]'
                         p = re.compile(reg_str, re.IGNORECASE)
                         m = p.match(msg_body.strip())
