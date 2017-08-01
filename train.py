@@ -10,7 +10,7 @@ def fetch_train_time(train_num, more=False):
     params = urllib.urlencode([
         ('showapi_appid', showapi_appid)
         ,('showapi_sign', showapi_sign)
-        ,('train_num', train_num)])
+        ,('train_num', train_num.upper())])
     headers = {'Content-type': 'application/x-www-form-urlencoded', 'Accept': 'text/plain'}
     conn = httplib.HTTPSConnection('route.showapi.com', port=443, timeout=30)
     conn.request('POST', '/832-2', params, headers)
