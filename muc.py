@@ -151,7 +151,7 @@ class MUCBot(sleekxmpp.ClientXMPP):
         if msg['type'] in ('chat', 'normal'):
             msg_body = msg['body']
             print("body: %s " % msg_body)
-            m = re.match(r'^([-])?(?P<nick>\[.*\])?(?P<msg_body>.*)', msg_body)
+            m = re.match(r'^(\[-\])?(\[(?P<nick>.*)\])?(?P<msg_body>.*)', msg_body)
             if m:
                 from_nick = m.groupdict().get('nick')
                 if not from_nick:
@@ -237,7 +237,7 @@ class MUCBot(sleekxmpp.ClientXMPP):
                         if last_message:
                             result = re.sub(sub_str, replace_str, last_message)
                             if result != last_message:
-                                result = u'%s %s' % (from_nick, result)
+                                result = u'[%s] %s' % (from_nick, result)
                                 if msg['from'] not in ('water@vim-cn.com/bot',):
                                     msg.reply(result).send()
                 else:
