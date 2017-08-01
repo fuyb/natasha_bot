@@ -24,7 +24,6 @@ def qa_request(message, uid):
 
 def qa_request_text(message, uid):
     data = qa_request(message, uid)
-    print data
     if data.get('error_code') != 0:
         return ':)'
     result = data.get('result')
