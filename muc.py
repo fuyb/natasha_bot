@@ -225,7 +225,7 @@ def run_command(command):
     return p.stdout.read()
 
 def run_trans(word):
-    command = "/usr/bin/ydcv.py '%s' | curl -F 'vimcn=<-' https://cfp.vim-cn.com/" % word
+    command = "/usr/local/bin/ydcv.py '%s' | curl -F 'vimcn=<-' https://cfp.vim-cn.com/" % word
     return run_command(command)
 
 def run_kuaidi(number):
