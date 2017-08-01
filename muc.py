@@ -10,7 +10,6 @@
 """
 
 import sys
-import os
 import re
 import logging
 import getpass
@@ -22,6 +21,7 @@ import weather
 import train
 import qa_bot
 import morse
+from simple_cache import SimpleCache
 
 # Python versions before 3.0 do not use UTF-8 encoding
 # by default. To ensure that Unicode is handled properly
@@ -69,7 +69,6 @@ class MUCBot(sleekxmpp.ClientXMPP):
         # muc::room@server::got_online, or muc::room@server::got_offline.
         self.add_event_handler("muc::%s::got_online" % self.room,
                                self.muc_online)
-
 
     def start(self, event):
         """
@@ -152,27 +151,32 @@ class MUCBot(sleekxmpp.ClientXMPP):
         if msg['type'] in ('chat', 'normal'):
             msg_body = msg['body']
             print("body: %s " % msg_body)
-            m = re.match(r'^([-])?(\[.*\])?(?P<msg_body>.*)', msg_body)
+            m = re.match(r'^([-])?(?P<nick>\[.*\])?(?P<msg_body>.*)', msg_body)
             if m:
+                from_nick = m.groupdict().get('nick')
+                if not from_nick:
+                    from_nick = msg['from']
                 msg_body = m.groupdict().get('msg_body')
-                reg_str = r'^[+@\'!](?P<nick>%s|%s|%s):? (?P<msg_body>.*)$' % (self.nick, u'小二', u'鸡气人')
+
+                reg_str = r'^[+@\'!](?P<nick>%s|%s|%s):? (?P<msg_body>.*)$' % \
+                          (self.nick, u'小二', u'鸡气人')
                 p = re.compile(reg_str, re.IGNORECASE)
                 m = p.match(msg_body.strip())
                 if m:
                     # 默认消息
                     result = u'我是 Lisa 的妹妹，我啥也不会干。:)'
-                    from_nick = m.groupdict().get('nick')
                     msg_body = m.groupdict().get('msg_body')
                     # 翻译
                     if re.search(r'^[a-zA-Z\-]+$', msg_body):
                         result = "%s/html" % run_trans(msg_body).split('\n')[0]
                     # 查快递
-                    elif re.search(r'^%s[0-9a-zA-Z_\-]+$' % u'快[递遞]', msg_body):
-                        reg_str = r'%s(?P<number>[0-9a-zA-Z_\-]+)$' % u'快[递遞]'
+                    elif re.search(r'^%s[\w\d\-]+$' % u'快[递遞]', msg_body):
+                        reg_str = r'%s(?P<number>[\w+\-]+)$' % u'快[递遞]'
                         p = re.compile(reg_str, re.IGNORECASE)
                         m = p.match(msg_body.strip())
                         if m:
-                            result = "%s/html" % run_kuaidi(m.groupdict().get('number')).split('\n')[0]
+                            result = run_kuaidi(m.groupdict().get('number'))
+                            result = "%s/html" % result.split('\n')[0]
                     # 查天气
                     elif re.search(r'%s' % u'天[气氣]$', msg_body.strip()):
                         reg_str = r'(.*)%s$' % u'天[气氣]'
@@ -183,23 +187,24 @@ class MUCBot(sleekxmpp.ClientXMPP):
                             result = weather.fetch_weather(city)
                     # 查车次(... 返回详情)
                     elif re.search(r'^%s' % u'[车車]次', msg_body):
-                        reg_str = r'^%s(?P<train_num>[a-zA-Z0-9_\-]+)(?P<more>...)?$' % u'[车車]次'
+                        reg_str = r'^%s(?P<train_num>[\w\-]+)(?P<more>...)?$'\
+                                  % u'[车車]次'
                         p = re.compile(reg_str, re.IGNORECASE)
                         m = p.match(msg_body.strip())
                         if m:
                             d = m.groupdict()
                             train_num = d.get('train_num')
                             more = d.get('more')
-                            result = train.fetch_train_time(train_num, more=more)
+                            result = train.fetch_train_time(train_num, more)
                     # 莫尔斯码
                     elif re.search(r'^Morse', msg_body, re.IGNORECASE):
-                        reg_str = r'^Morse(?P<option>[<>])(?P<code>[\w\d /.-]+)$'
+                        reg_str = r'^Morse(?P<opt>[<>])(?P<code>[\w\d /.-]+)$'
                         p = re.compile(reg_str, re.IGNORECASE)
                         m = p.match(msg_body)
                         if m:
                             d = m.groupdict()
                             code = d.get('code')
-                            option = d.get('option')
+                            option = d.get('opt')
                             if option == '<':
                                 if len(code) <= 1024:
                                     result = morse.encode_morse(code)
@@ -208,29 +213,57 @@ class MUCBot(sleekxmpp.ClientXMPP):
                             else:
                                 # code strip 一下防止空格打头
                                 # code 加个空格，确保完整处理
+                                code = code.strip()
                                 if len(code) <= 4096:
-                                    result = morse.decode_morse(code.strip() + ' ')
+                                    result = morse.decode_morse(code + ' ')
                                 else:
                                     result = u'太长了不能处理。:)'
                     else:
-                        result = qa_bot.qa_request_text(msg_body, from_nick if from_nick else msg['from'])
+                        # 聊天机器人
+                        result = qa_bot.qa_request_text(msg_body, from_nick)
 
-                    msg.reply(result).send()
+                    if result:
+                        msg.reply(result).send()
+                # 修改消息
+                elif re.search(r'^s/(.*)/(.*)/$', msg_body.strip(), re.IGNORECASE):
+                    reg_str = r'^s/(?P<sub>.*)/(?P<rep>.*)/$'
+                    p = re.compile(reg_str, re.IGNORECASE)
+                    m = p.match(msg_body.strip())
+                    if m:
+                        d = m.groupdict()
+                        sub_str = u'%s' % d.get('sub')
+                        replace_str = u'%s' % d.get('rep')
+                        last_message = u'%s' % SimpleCache('last_message', from_nick).get()
+                        if last_message:
+                            result = re.sub(sub_str, replace_str, last_message)
+                            if result != last_message:
+                                result = u'%s %s' % (from_nick, result)
+                                msg.reply(result).send()
+                else:
+                    # 缓存群友消息，缓存300s
+                    SimpleCache('last_message', from_nick).save(msg_body, 300)
+
 
 def run_command(command):
     p = subprocess.Popen(command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=True)
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         shell=True)
     return p.stdout.read()
 
+
+CFP_COMMAND = "curl -F 'vimcn=<-' https://cfp.vim-cn.com/"
+
+
 def run_trans(word):
-    command = "/usr/local/bin/ydcv.py '%s' | curl -F 'vimcn=<-' https://cfp.vim-cn.com/" % word
+    command = '/usr/local/bin/ydcv.py "%s" | %s' % (word, CFP_COMMAND)
     return run_command(command)
 
+
 def run_kuaidi(number):
-    command = "/usr/local/bin/tracking.py --number %s | curl -F 'vimcn=<-' https://cfp.vim-cn.com/" % number
+    command = '/usr/local/bin/tracking.py -n %s | %s' % (number, CFP_COMMAND)
     return run_command(command)
+
 
 if __name__ == '__main__':
     # Setup the command line arguments.
@@ -276,11 +309,11 @@ if __name__ == '__main__':
     # have interdependencies, the order in which you register them does
     # not matter.
     xmpp = MUCBot(opts.jid, opts.password, opts.room, opts.nick)
-    xmpp.register_plugin('xep_0030') # Service Discovery
-    xmpp.register_plugin('xep_0045') # Multi-User Chat
-    xmpp.register_plugin('xep_0199') # XMPP Ping
-    xmpp.register_plugin('xep_0060') # PubSub
-    xmpp.register_plugin('xep_0004') # Data Forms
+    xmpp.register_plugin('xep_0030')  # Service Discovery
+    xmpp.register_plugin('xep_0045')  # Multi-User Chat
+    xmpp.register_plugin('xep_0199')  # XMPP Ping
+    xmpp.register_plugin('xep_0060')  # PubSub
+    xmpp.register_plugin('xep_0004')  # Data Forms
 
     # Connect to the XMPP server and start processing XMPP stanzas.
     if xmpp.connect():
