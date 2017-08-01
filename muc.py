@@ -225,7 +225,7 @@ class MUCBot(sleekxmpp.ClientXMPP):
                     if result:
                         msg.reply(result).send()
                 # 修改消息
-                elif re.search(r'^s/\w+/\w+/?$', msg_body.strip(), re.UNICODE):
+                elif re.search(r'^s/(\w+)/(\w+)/?$', msg_body.strip(), re.UNICODE):
                     reg_str = r'^s/(?P<sub>\w+)/(?P<rep>\w+)/?$'
                     p = re.compile(reg_str, re.UNICODE)
                     m = p.match(msg_body.strip())
