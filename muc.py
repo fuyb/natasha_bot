@@ -238,7 +238,8 @@ class MUCBot(sleekxmpp.ClientXMPP):
                             result = re.sub(sub_str, replace_str, last_message)
                             if result != last_message:
                                 result = u'%s %s' % (from_nick, result)
-                                msg.reply(result).send()
+                                if msg['from'] not in ('water@vim-cn.com/bot',):
+                                    msg.reply(result).send()
                 else:
                     # 缓存群友消息，缓存300s
                     SimpleCache('last_message', from_nick).save(msg_body, 300)
