@@ -1,0 +1,6 @@
+*~
+*.bak
+*.old
+*.py[cd]
+*.log
+*.*.swp
