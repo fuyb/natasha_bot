@@ -1,13 +1,17 @@
 #!coding: utf-8
 import redis
+
+
 REDIS_HOST = 'localhost'
 REDIS_PORT = 6379
 NAME = 'natasha_bot'
 redis_pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT, db=0)
 
+
 def get_redis_instance():
     rc = redis.Redis(connection_pool=redis_pool)
     return rc
+
 
 class SimpleCache():
     def __init__(self, app, opt):

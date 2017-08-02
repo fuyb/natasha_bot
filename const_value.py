@@ -1,4 +1,4 @@
-#!encoding: utf-8
+# -*- coding: utf-8 -*-
 KEY = '3cdvv8nhe0hw8ne2'  # API key
 UID = 'U38C91048B'  # 用户ID
 

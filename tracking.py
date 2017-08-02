@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-#!encoding: utf-8
+# -*- coding: utf-8 -*-
+
 import json
 import urllib
 import base64
@@ -7,12 +8,15 @@ import httplib
 import md5
 import argparse
 
+
 KDNIAO_APP_ID = '1298806'
 KDNIAO_KEY = '57f61425-ca2f-4a19-882a-751e609ce74a'
+STATE = ('2', '3', '4')
+
 
 def request_api(params, request_type):
     params_md5 = md5.new(json.dumps(params) + KDNIAO_KEY).hexdigest()
-    data_sign = base64.b64encode(params_md5) 
+    data_sign = base64.b64encode(params_md5)
     data = {
         'RequestData': json.dumps(params),
         'RequestType': request_type,
@@ -36,6 +40,7 @@ def request_api(params, request_type):
             resp_data = {'error': -1}
     return resp_data
 
+
 def tracking(shipper_code, tracking_number):
     params = {
         'ShipperCode': shipper_code,
@@ -44,11 +49,13 @@ def tracking(shipper_code, tracking_number):
     }
     return request_api(params, '1002')
 
+
 def fetch_shipper_code(tracking_number):
     params = {
         'LogisticCode': tracking_number,
     }
     return request_api(params, '2002')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=u'查询快递信息')
@@ -77,11 +84,11 @@ if __name__ == '__main__':
         print u'查询失败，请确认快递单编号是否正确。:)'.encode('utf-8', 'ignore')
         exit(-1)
 
-    if not resp_data.get('Success') or resp_data.get('State') not in ('2', '3', '4'):
+    if not resp_data.get('Success') or resp_data.get('State') not in STATE:
         ret = u"%s，请确认快递单编号是否正确。:)" % resp_data.get('Reason')
         print ret.encode('utf-8', 'ignore')
         exit(-1)
 
-    for line in ["%s %s" % (item.get('AcceptStation'), item.get('AcceptTime')) 
-            for item in resp_data.get('Traces')]:
+    for line in ["%s %s" % (item.get('AcceptStation'), item.get('AcceptTime'))
+                 for item in resp_data.get('Traces')]:
         print line.encode('utf-8', 'ignore')
