@@ -3,6 +3,7 @@ import requests
 from const_value import API, KEY, UNIT, LANGUAGE
 import json
 
+
 def fetch_weather(location):
     result = requests.get(API, params={
         'key': KEY,
@@ -22,6 +23,7 @@ def fetch_weather(location):
                     temperature=now.get('temperature'))
             return result
     return u'查询天气失败，或不支持这个城市'
+
 
 if __name__ == '__main__':
     import argparse
