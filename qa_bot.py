@@ -4,17 +4,22 @@ import urllib
 import httplib
 import json
 
+
 appkey = '7fdb2ccc23243093dff2fc9e4f4ac4a5'
+
 
 def qa_request(message, uid):
     params = {
         'key': appkey,
         'info': message,
         'dtype': 'json',
-        'userid': uid 
+        'userid': uid
     }
     params = urllib.urlencode(params)
-    headers = {'Content-type': 'application/x-www-form-urlencoded', 'Accept': 'text/plain'}
+    headers = {
+        'Content-type': 'application/x-www-form-urlencoded',
+        'Accept': 'text/plain'
+    }
     conn = httplib.HTTPSConnection('op.juhe.cn', port=443, timeout=30)
     conn.request('POST', '/robot/index', params, headers)
     str_res = conn.getresponse().read().decode('utf-8')
@@ -22,12 +27,14 @@ def qa_request(message, uid):
     conn.close()
     return json_res
 
+
 def qa_request_text(message, uid):
     data = qa_request(message, uid)
     if data.get('error_code') != 0:
         return ':)'
     result = data.get('result')
     return result.get('text').replace(u'聚合数据', ' Natasha ')
+
 
 if __name__ == '__main__':
     import argparse
