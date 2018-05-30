@@ -3,10 +3,16 @@
 
 import json
 import urllib
-import base64
 import httplib
-import md5
+import string
 import argparse
+
+from datetime import datetime, timedelta
+
+def format_time(ms):
+    _time = timedelta(milliseconds=ms)
+    _datetime = datetime(1, 1, 1) + _time
+    return "%.2d:%.2d:%.2d" % (_datetime.hour, _datetime.minute, _datetime.second)
 
 def search(query, only_one=True):
     data = {
@@ -41,10 +47,20 @@ def search(query, only_one=True):
             resp_data = {'error': -1}
     if only_one:
         try:
-            song_id = resp_data.get('result').get('songs')[0].get('id')
-            song_url = 'http://music.163.com/#/song?id=%s' % song_id
-            return song_url
-        except:
+            song = resp_data.get('result').get('songs')[0]
+            song_url = 'http://music.163.com/#/song?id=%s' % song.get("id")
+            artists = song.get('artists')
+            artist_list = list()
+            for art in artists:
+                artist_list.append(art.get('name'))
+            info = "%s < %s > by %s / %s / %s" % (song.get("name"),
+                    song_url,
+                    string.join(artist_list, ','),
+                    song.get('album').get('name'),
+                    format_time(song.get('duration')))
+            return info
+        except Exception as e:
+            print e
             return ''
     return resp_data
 
