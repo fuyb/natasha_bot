@@ -21,6 +21,7 @@ import weather
 import train
 import qa_bot
 import morse
+import music_163
 from simple_cache import SimpleCache
 
 # Python versions before 3.0 do not use UTF-8 encoding
@@ -240,6 +241,21 @@ class MUCBot(sleekxmpp.ClientXMPP):
                                 result = u'[%s] %s' % (from_nick, result)
                                 if msg['from'] not in ('water@vim-cn.com/bot',):
                                     msg.reply(result).send()
+                # 音乐搜索
+                elif re.search(r'^ ?[\'!@]m?163', msg_body, re.IGNORECASE):
+                    reg_str = r'^ ?[\'!@](?P<opt>m?163) (?P<query>\w+)$'
+                    p = re.compile(reg_str, re.UNICODE)
+                    m = p.match(msg_body)
+                    if m:
+                        d = m.groupdict()
+                        opt = d.get('opt')
+                        if opt == '163' and msg['from'] in ('offtopic@archlinuxcn.org/bot', 'talk@archlinuxcn.org/bot'):
+                            return;
+
+                        query = d.get('query', None)
+                        if query is not None:
+                            result = music_163.search(query)
+                            msg.reply(result).send()
                 else:
                     # 缓存群友消息，缓存300s
                     SimpleCache('last_message', from_nick).save(msg_body, 300)
