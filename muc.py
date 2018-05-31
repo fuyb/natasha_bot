@@ -243,7 +243,7 @@ class MUCBot(sleekxmpp.ClientXMPP):
                                     msg.reply(result).send()
                 # 音乐搜索
                 elif re.search(r'^ ?[\'!@]m?163', msg_body, re.IGNORECASE):
-                    reg_str = r'^ ?[\'!@](?P<opt>m?163) (?P<query>\w+)$'
+                    reg_str = r'^ ?[\'!@](?P<opt>m?163) (?P<query>.*)$'
                     p = re.compile(reg_str, re.UNICODE)
                     m = p.match(msg_body)
                     if m:
